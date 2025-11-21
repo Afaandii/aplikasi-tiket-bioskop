@@ -569,4 +569,123 @@ public class TransactionDAO {
        }
        return transactions;
    }
+   
+   /**
+     * Ambil SEMUA data laporan keuangan untuk kasir tertentu.
+     * @param cashierId ID pengguna (kasir)
+     * @return List<Transaction> berisi transaksi milik kasir tersebut.
+     */
+    public List<Transaction> getAllFinancialReportDataByCashier(int cashierId) {
+        String sql = """
+            SELECT 
+                t.id,
+                t.user_id,
+                t.showtime_id,
+                t.transaction_code,
+                t.total_price,
+                t.status,
+                t.payment_method,
+                t.amount_ticket,
+                t.created_at,
+                u.username AS username,
+                m.title AS movie_title,
+                s.date AS show_date,
+                s.start_time AS show_start_time
+            FROM transaction t
+            INNER JOIN user u ON t.user_id = u.id
+            INNER JOIN showtimes s ON t.showtime_id = s.id
+            INNER JOIN movies m ON s.movie_id = m.id
+            WHERE u.id = ? AND t.status = 'completed'
+            ORDER BY t.created_at DESC
+            """;
+
+        List<Transaction> transactions = new ArrayList<>();
+        try {
+            // Gunakan DatabaseConnection.executeQuery() seperti di metode lainnya
+            ResultSet rs = DatabaseConnection.executeQuery(sql, cashierId);
+            while (rs.next()) {
+                Transaction tx = new Transaction();
+                tx.setId(rs.getInt("id"));
+                tx.setUserId(rs.getInt("user_id"));
+                tx.setShowtimeId(rs.getInt("showtime_id"));
+                tx.setTransactionCode(rs.getString("transaction_code"));
+                tx.setTotalPrice(rs.getInt("total_price")); // Pastikan kolom total_price di DB bertipe INT/BIGINT
+                tx.setAmountTicket(rs.getInt("amount_ticket"));
+                tx.setStatus(rs.getString("status"));
+                tx.setPaymentMethod(rs.getString("payment_method"));
+                tx.setCreatedAt(rs.getTimestamp("created_at"));
+                tx.setUsername(rs.getString("username"));
+                tx.setMovieTitle(rs.getString("movie_title"));
+                tx.setShowDate(rs.getDate("show_date"));
+                tx.setShowTime(rs.getTime("show_start_time"));
+                transactions.add(tx);
+            }
+            rs.close(); // Penting: tutup ResultSet
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error in getAllFinancialReportDataByCashier: " + e.getMessage());
+        }
+        return transactions;
+    }
+
+    /**
+     * Ambil data laporan keuangan untuk kasir tertentu dalam rentang tanggal.
+     * @param startDate Tanggal awal
+     * @param endDate Tanggal akhir
+     * @param cashierId ID pengguna (kasir)
+     * @return List<Transaction> berisi transaksi milik kasir tersebut dalam rentang tanggal.
+     */
+    public List<Transaction> getTransactionsByDateRangeByCashier(Date startDate, Date endDate, int cashierId) {
+        String sql = """
+            SELECT 
+                t.id,
+                t.user_id,
+                t.showtime_id,
+                t.transaction_code,
+                t.total_price,
+                t.status,
+                t.payment_method,
+                t.amount_ticket,
+                t.created_at,
+                u.username AS username,
+                m.title AS movie_title,
+                s.date AS show_date,
+                s.start_time AS show_start_time
+            FROM transaction t
+            INNER JOIN user u ON t.user_id = u.id
+            INNER JOIN showtimes s ON t.showtime_id = s.id
+            INNER JOIN movies m ON s.movie_id = m.id
+            WHERE u.id = ? AND t.status = 'completed'
+              AND DATE(t.created_at) BETWEEN ? AND ?
+            ORDER BY t.created_at DESC
+            """;
+
+        List<Transaction> transactions = new ArrayList<>();
+        try {
+            // Gunakan DatabaseConnection.executeQuery() dengan parameter
+            ResultSet rs = DatabaseConnection.executeQuery(sql, cashierId, startDate, endDate);
+            while (rs.next()) {
+                Transaction tx = new Transaction();
+                tx.setId(rs.getInt("id"));
+                tx.setUserId(rs.getInt("user_id"));
+                tx.setShowtimeId(rs.getInt("showtime_id"));
+                tx.setTransactionCode(rs.getString("transaction_code"));
+                tx.setTotalPrice(rs.getInt("total_price"));
+                tx.setAmountTicket(rs.getInt("amount_ticket"));
+                tx.setStatus(rs.getString("status"));
+                tx.setPaymentMethod(rs.getString("payment_method"));
+                tx.setCreatedAt(rs.getTimestamp("created_at"));
+                tx.setUsername(rs.getString("username"));
+                tx.setMovieTitle(rs.getString("movie_title"));
+                tx.setShowDate(rs.getDate("show_date"));
+                tx.setShowTime(rs.getTime("show_start_time"));
+                transactions.add(tx);
+            }
+            rs.close(); // Penting: tutup ResultSet
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error in getTransactionsByDateRangeByCashier: " + e.getMessage());
+        }
+        return transactions;
+    }
 }
