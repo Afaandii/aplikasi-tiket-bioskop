@@ -190,13 +190,20 @@ public class MovieSelectionPage extends JPanel {
         }
     }
 
-    private JPanel createBottomPanel(CinemaApp app) {
+        private JPanel createBottomPanel(CinemaApp app) {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         bottomPanel.setBackground(Color.WHITE);
 
-        JButton logoutButton = createButton("Logout", new Color(231, 76, 60)); // Merah seperti di AdminDashboard
+        // Tombol Logout (di sebelah kiri)
+        JButton logoutButton = createButton("Logout", new Color(231, 76, 60)); // Merah
+
+        // Tombol Laporan Keuangan (di tengah)
+        JButton reportButton = createButton("📊 Laporan Keuangan", new Color(70, 130, 180)); // Biru
+
+        // Tombol Refresh (di sebelah kanan)
         JButton refreshButton = createButton("🔄 Segarkan", new Color(70, 130, 180));
 
+        // Action Listener untuk Logout
         logoutButton.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(
                 MovieSelectionPage.this,
@@ -210,12 +217,20 @@ public class MovieSelectionPage extends JPanel {
             }
         });
 
+        // Action Listener untuk Report
+        reportButton.addActionListener(e -> {
+            app.showPage(new FinancialReportPanel(app)); // Alihkan ke laporan keuangan
+        });
+
+        // Action Listener untuk Refresh
         refreshButton.addActionListener(e -> {
             loadData(app);
             table.repaint();
         });
 
+        // Tambahkan tombol dalam urutan yang diinginkan
         bottomPanel.add(logoutButton);
+        bottomPanel.add(reportButton);
         bottomPanel.add(refreshButton);
 
         return bottomPanel;

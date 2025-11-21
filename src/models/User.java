@@ -49,4 +49,15 @@ public class User {
     
     public Timestamp getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Timestamp updatedAt) { this.updatedAt = updatedAt; }
+    
+    public String getRoleName() {
+        switch (this.roleId) {
+            case 1:
+                return "admin";
+            case 2:
+                return "cashier";
+            default:
+                return "unknown"; // Atau bisa juga throw exception jika diperlukan
+        }
+    }
 }
