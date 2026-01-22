@@ -3,42 +3,8 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/TicketPriceManagementPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/SeatType.java</file>
             <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/MovieDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/SeatSelectionPage.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/Showtime.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/UserDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/TicketPage.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/MovieManagementPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/SeatManagementPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/SeatDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/ShowtimeDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/User.java</file>
             <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/AdminDashboard.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/SeatTypeDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/StudioDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/LoginPage.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/utils/DatabaseConnection.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/TransactionDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/MovieSelectionPage.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/TicketPriceDAO.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/TicketPrice.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/MainApp.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/Studio.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/FinancialReportPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/PaymentPopup.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/Seat.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/Transaction.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/CinemaApp.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/TransactionSummaryPage.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/LoadingScreen.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/UserManagementPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/ShowtimeManagementPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/Ticket.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/gui/StudioManagementPanel.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/models/Movie.java</file>
-            <file>file:/C:/Users/HP/NetBeansProjects/aplikasi-penjualan-tiket-bioskop/src/dao/TicketDAO.java</file>
         </group>
     </open-files>
 </project-private>

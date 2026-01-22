@@ -15,10 +15,10 @@ import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
 import com.toedter.calendar.JDateChooser;
+import javax.swing.border.TitledBorder;
 
-public class FinancialReportPanel extends JPanel {
+public class FinancialReportKasir extends JPanel {
     private final Color primaryColor = new Color(41, 128, 185);
     private final Color secondaryColor = new Color(52, 152, 219);
     private final Color backgroundColor = new Color(236, 240, 241);
@@ -28,24 +28,22 @@ public class FinancialReportPanel extends JPanel {
     private JTable reportTable;
     private DefaultTableModel tableModel;
     private TransactionDAO transactionDAO;
-    private JLabel cashTotalLabel;
-    private JLabel qrisTotalLabel;
     private JDateChooser startDateChooser;
     private JDateChooser endDateChooser;
-    private JComboBox<String> cashierComboBox; // Dropdown untuk Kasir
     private JComboBox<String> paymentMethodComboBox; // Dropdown untuk Metode Pembayaran
     private CinemaApp app;
+    private User loggedInUser; // Simpan user yang login
 
-    // --- Konstruktor Default (Tanpa Parameter) ---
-    public FinancialReportPanel() {
-        this(null); // Panggil konstruktor utama dengan null
-    }
-
-    // --- Konstruktor Utama (Dengan Parameter) ---
-    public FinancialReportPanel(CinemaApp app) {
+    // --- Konstruktor ---
+    public FinancialReportKasir(CinemaApp app) {
         setLayout(new BorderLayout());
         setBackground(backgroundColor);
         this.app = app;
+        this.loggedInUser = app.getLoggedInUser(); // Ambil user yang login
+        if (loggedInUser == null) {
+            JOptionPane.showMessageDialog(this, "User not logged in!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         transactionDAO = new TransactionDAO();
         initializeComponents();
     }
@@ -56,7 +54,7 @@ public class FinancialReportPanel extends JPanel {
         headerPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(189, 195, 199)));
         headerPanel.setPreferredSize(new Dimension(0, 70));
 
-        JLabel titleLabel = new JLabel("Financial Report");
+        JLabel titleLabel = new JLabel("Laporan Keuangan - Kasir");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(textColor);
         headerPanel.add(titleLabel, BorderLayout.WEST);
@@ -78,11 +76,6 @@ public class FinancialReportPanel extends JPanel {
         endDateChooser.setDateFormatString("yyyy-MM-dd");
         endDateChooser.setPreferredSize(new Dimension(120, 25));
         ((JTextField) endDateChooser.getDateEditor().getUiComponent()).setEditable(false);
-
-        // Inisialisasi ComboBox Kasir
-        JLabel cashierLabel = new JLabel("Kasir:");
-        cashierComboBox = new JComboBox<>();
-        cashierComboBox.addItem("Semua Kasir"); // Opsi default
 
         // Inisialisasi ComboBox Metode Pembayaran
         JLabel paymentMethodLabel = new JLabel("Metode Pembayaran:");
@@ -107,60 +100,15 @@ public class FinancialReportPanel extends JPanel {
         filterPanel.add(startDateChooser);
         filterPanel.add(endDateLabel);
         filterPanel.add(endDateChooser);
-        filterPanel.add(cashierLabel);
-        filterPanel.add(cashierComboBox);
+        filterPanel.add(generateBtn);
         filterPanel.add(paymentMethodLabel);
         filterPanel.add(paymentMethodComboBox);
-        filterPanel.add(generateBtn);
         filterPanel.add(exportBtn);
 
         add(filterPanel, BorderLayout.NORTH);
 
-        JPanel summaryPanel = new JPanel(new GridLayout(1, 2, 20, 20));
-        summaryPanel.setBackground(backgroundColor);
-        summaryPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(189, 195, 199)),
-                "Ringkasan Transaksi",
-                TitledBorder.LEFT,
-                TitledBorder.TOP,
-                new Font("Arial", Font.BOLD, 14),
-                textColor
-        ));
-
-        JPanel totalPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        totalPanel.setBackground(backgroundColor);
-        JLabel totalTransLabel = new JLabel("Total Transaksi: 0");
-        totalTransLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        totalTransLabel.setForeground(textColor);
-        JLabel totalRevenueLabel = new JLabel("Total Pendapatan: Rp 0");
-        totalRevenueLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        totalRevenueLabel.setForeground(textColor);
-        totalPanel.add(totalTransLabel);
-        totalPanel.add(totalRevenueLabel);
-
-        JPanel paymentBreakdownPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        paymentBreakdownPanel.setBackground(backgroundColor);
-        paymentBreakdownPanel.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(189, 195, 199)),
-                "Breakdown Metode Pembayaran",
-                TitledBorder.LEFT,
-                TitledBorder.TOP,
-                new Font("Arial", Font.BOLD, 12),
-                textColor
-        ));
-        cashTotalLabel = new JLabel("CASH: Rp 0");
-        cashTotalLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        cashTotalLabel.setForeground(Color.BLUE);
-        qrisTotalLabel = new JLabel("QRIS: Rp 0");
-        qrisTotalLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        qrisTotalLabel.setForeground(Color.MAGENTA);
-        paymentBreakdownPanel.add(cashTotalLabel);
-        paymentBreakdownPanel.add(qrisTotalLabel);
-
-        summaryPanel.add(totalPanel);
-        summaryPanel.add(paymentBreakdownPanel);
-
-        add(summaryPanel, BorderLayout.CENTER);
+        // HAPUS PANEL RINGKASAN DAN BREAKDOWN DI SINI
+        // Kita langsung ke panel Daftar Transaksi
 
         JPanel transactionPanel = new JPanel(new BorderLayout());
         transactionPanel.setBackground(backgroundColor);
@@ -174,7 +122,7 @@ public class FinancialReportPanel extends JPanel {
         ));
 
         String[] columnNames = {
-                "No", "Transaction Code", "Tanggal", "Kasir", "Movie Title",
+                "No", "Transaction Code", "Tanggal", "Movie Title",
                 "Total Price", "Payment Method", "Status"
         };
         tableModel = new DefaultTableModel(columnNames, 0) {
@@ -207,36 +155,24 @@ public class FinancialReportPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         transactionPanel.add(scrollPane, BorderLayout.CENTER);
 
-        add(transactionPanel, BorderLayout.SOUTH);
+        // Tambahkan panel Daftar Transaksi ke BorderLayout.CENTER
+        add(transactionPanel, BorderLayout.CENTER);
 
-        // Load data awal (semua transaksi)
-        loadAllData(totalTransLabel, totalRevenueLabel, cashTotalLabel, qrisTotalLabel);
-
-        // Muat daftar kasir ke dalam combobox
-        loadCashiersToComboBox();
-
-        // Tambahkan listener untuk dropdown Kasir
-        cashierComboBox.addActionListener(e -> {
-            // Filter otomatis ketika pilihan kasir berubah
-            applyFilters(totalTransLabel, totalRevenueLabel, cashTotalLabel, qrisTotalLabel);
-            // Tutup popup dropdown setelah pilihan dibuat
-            cashierComboBox.setPopupVisible(false);
-        });
+        // Load data awal (semua transaksi kasir)
+        loadAllData();
 
         // Tambahkan listener untuk dropdown Metode Pembayaran
         paymentMethodComboBox.addActionListener(e -> {
             // Filter otomatis ketika pilihan metode pembayaran berubah
-            applyFilters(totalTransLabel, totalRevenueLabel, cashTotalLabel, qrisTotalLabel);
-            // Tutup popup dropdown setelah pilihan dibuat
-            paymentMethodComboBox.setPopupVisible(false);
+            applyFilters();
         });
 
-        // Listener untuk tombol Filter (hanya untuk rentang tanggal)
+        // Listener untuk tombol Filter
         generateBtn.addActionListener(e -> {
             java.util.Date startUtil = startDateChooser.getDate();
             java.util.Date endUtil = endDateChooser.getDate();
             if (startUtil == null || endUtil == null) {
-                JOptionPane.showMessageDialog(FinancialReportPanel.this,
+                JOptionPane.showMessageDialog(FinancialReportKasir.this,
                         "Please select both start and end dates.",
                         "Input Error",
                         JOptionPane.ERROR_MESSAGE);
@@ -245,14 +181,14 @@ public class FinancialReportPanel extends JPanel {
             Date startDate = new Date(startUtil.getTime());
             Date endDate = new Date(endUtil.getTime());
             if (startDate.after(endDate)) {
-                JOptionPane.showMessageDialog(FinancialReportPanel.this,
+                JOptionPane.showMessageDialog(FinancialReportKasir.this,
                         "Start date cannot be after end date.",
                         "Input Error",
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            // Gunakan method baru yang mendukung semua filter
-            loadFilteredReportData(startDate, endDate, totalTransLabel, totalRevenueLabel, cashTotalLabel, qrisTotalLabel);
+            // Gunakan method baru yang mendukung filter metode pembayaran
+            loadFilteredReportData(startDate, endDate);
         });
 
         // Listener untuk tombol Export
@@ -260,65 +196,43 @@ public class FinancialReportPanel extends JPanel {
     }
 
     /**
-     * Method helper untuk memuat daftar kasir ke dalam comboBox
+     * Method helper untuk menerapkan filter berdasarkan kombinasi metode pembayaran.
+     * Metode ini akan memuat data untuk semua tanggal (tanpa batas waktu) berdasarkan pilihan metode pembayaran.
      */
-    private void loadCashiersToComboBox() {
-        List<User> cashiers = transactionDAO.getAllCashiers();
-        for (User cashier : cashiers) {
-            cashierComboBox.addItem(cashier.getUsername());
-        }
-    }
-
-    /**
-     * Method helper untuk menerapkan filter berdasarkan kombinasi kasir dan metode pembayaran.
-     * Metode ini akan memuat data untuk semua tanggal (tanpa batas waktu).
-     * Digunakan oleh action listener dari dropdown.
-     */
-    private void applyFilters(JLabel totalTransLabel, JLabel totalRevenueLabel, JLabel cashTotalLabel, JLabel qrisTotalLabel) {
+    private void applyFilters() {
         // Ambil nilai dari dropdown
-        String selectedCashier = (String) cashierComboBox.getSelectedItem();
         String selectedPaymentMethod = (String) paymentMethodComboBox.getSelectedItem();
 
         // Panggil method yang bisa menangani semua filter, dengan null untuk tanggal
-        loadFilteredReportData(null, null, totalTransLabel, totalRevenueLabel, cashTotalLabel, qrisTotalLabel);
+        loadFilteredReportData(null, null);
     }
 
     /**
-     * Method baru untuk memuat data laporan dengan filter lengkap (tanggal, kasir, metode pembayaran)
+     * Method baru untuk memuat data laporan dengan filter lengkap (tanggal dan metode pembayaran)
      * Jika startDate dan endDate null, maka akan memuat semua data tanpa batas waktu.
      */
-    private void loadFilteredReportData(Date startDate, Date endDate, JLabel totalTransLabel, JLabel totalRevenueLabel, JLabel cashTotalLabel, JLabel qrisTotalLabel) {
+    private void loadFilteredReportData(Date startDate, Date endDate) {
         tableModel.setRowCount(0);
 
-        User loggedInUser = (app != null) ? app.getLoggedInUser() : null;
-        boolean isAdmin = loggedInUser != null && "admin".equalsIgnoreCase(loggedInUser.getRoleName());
-
         // Ambil nilai dari dropdown
-        String selectedCashier = (String) cashierComboBox.getSelectedItem();
         String selectedPaymentMethod = (String) paymentMethodComboBox.getSelectedItem();
 
         List<Transaction> transactions;
 
-        // Jika bukan admin, gunakan filter berdasarkan user_id
-        if (!isAdmin && app != null && loggedInUser != null) {
-            // Untuk kasir, kita hanya ingin melihat transaksinya sendiri, jadi abaikan filter dropdown kasir
-            // Kita tetap mengambil berdasarkan user_id mereka
-            if (startDate == null || endDate == null) {
-                // Jika tidak ada filter tanggal, ambil semua transaksi kasir
-                transactions = transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
-            } else {
-                // Jika ada filter tanggal, ambil transaksi kasir dalam rentang tanggal
-                transactions = transactionDAO.getTransactionsByDateRangeByCashier(startDate, endDate, loggedInUser.getId());
-            }
+        // Untuk kasir, kita hanya ingin melihat transaksinya sendiri, jadi abaikan filter dropdown kasir
+        if (startDate == null || endDate == null) {
+            // Jika tidak ada filter tanggal, ambil semua transaksi kasir
+            transactions = transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
         } else {
-            // Jika admin, gunakan filter berdasarkan dropdown
-            transactions = transactionDAO.getTransactionsByDateRangeWithFilters(startDate, endDate, selectedCashier, selectedPaymentMethod);
+            // Jika ada filter tanggal, ambil transaksi kasir dalam rentang tanggal
+            transactions = transactionDAO.getTransactionsByDateRangeByCashier(startDate, endDate, loggedInUser.getId());
         }
 
-        long totalRevenue = 0;
-        int totalTransactions = 0;
-        long cashTotal = 0;
-        long qrisTotal = 0;
+        // Filter berdasarkan metode pembayaran jika bukan "Semua Metode"
+        if (!"Semua Metode".equals(selectedPaymentMethod)) {
+            transactions.removeIf(tx -> !selectedPaymentMethod.equalsIgnoreCase(tx.getPaymentMethod()));
+        }
+
         int rowNumber = 1;
 
         for (Transaction tx : transactions) {
@@ -328,48 +242,22 @@ public class FinancialReportPanel extends JPanel {
                     rowNumber++,
                     tx.getTransactionCode(),
                     formattedDate,
-                    tx.getUsername(),
                     tx.getMovieTitle(),
                     formatCurrency(tx.getTotalPrice()),
                     tx.getPaymentMethod(),
                     tx.getStatus()
             });
-            totalRevenue += tx.getTotalPrice();
-            totalTransactions++;
-            if ("Cash".equalsIgnoreCase(tx.getPaymentMethod())) {
-                cashTotal += tx.getTotalPrice();
-            } else if ("Qris".equalsIgnoreCase(tx.getPaymentMethod())) {
-                qrisTotal += tx.getTotalPrice();
-            }
         }
-
-        totalTransLabel.setText("Total Transaksi: " + totalTransactions);
-        totalRevenueLabel.setText("Total Pendapatan: " + formatCurrency(totalRevenue));
-        cashTotalLabel.setText("CASH: " + formatCurrency(cashTotal));
-        qrisTotalLabel.setText("QRIS: " + formatCurrency(qrisTotal));
     }
 
     /**
      * Method lama untuk memuat semua data tanpa filter (untuk inisialisasi)
      */
-    private void loadAllData(JLabel totalTransLabel, JLabel totalRevenueLabel, JLabel cashTotalLabel, JLabel qrisTotalLabel) {
+    private void loadAllData() {
         tableModel.setRowCount(0);
-        User loggedInUser = (app != null) ? app.getLoggedInUser() : null;
-        boolean isAdmin = loggedInUser != null && "admin".equalsIgnoreCase(loggedInUser.getRoleName());
 
-        List<Transaction> transactions;
-        if (isAdmin) {
-            transactions = transactionDAO.getAllFinancialReportData();
-        } else if (app != null && loggedInUser != null) {
-            transactions = transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
-        } else {
-            transactions = transactionDAO.getAllFinancialReportData(); // Fallback untuk null
-        }
+        List<Transaction> transactions = transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
 
-        long totalRevenue = 0;
-        int totalTransactions = 0;
-        long cashTotal = 0;
-        long qrisTotal = 0;
         int rowNumber = 1;
 
         for (Transaction tx : transactions) {
@@ -379,35 +267,12 @@ public class FinancialReportPanel extends JPanel {
                     rowNumber++,
                     tx.getTransactionCode(),
                     formattedDate,
-                    tx.getUsername(),
                     tx.getMovieTitle(),
                     formatCurrency(tx.getTotalPrice()),
                     tx.getPaymentMethod(),
                     tx.getStatus()
             });
-            totalRevenue += tx.getTotalPrice();
-            totalTransactions++;
-            if ("Cash".equalsIgnoreCase(tx.getPaymentMethod())) {
-                cashTotal += tx.getTotalPrice();
-            } else if ("Qris".equalsIgnoreCase(tx.getPaymentMethod())) {
-                qrisTotal += tx.getTotalPrice();
-            }
         }
-
-        totalTransLabel.setText("Total Transaksi: " + totalTransactions);
-        totalRevenueLabel.setText("Total Pendapatan: " + formatCurrency(totalRevenue));
-        cashTotalLabel.setText("CASH: " + formatCurrency(cashTotal));
-        qrisTotalLabel.setText("QRIS: " + formatCurrency(qrisTotal));
-    }
-
-    /**
-     * Method lama yang masih digunakan oleh tombol Filter (sekarang sudah di-replace oleh loadFilteredReportData)
-     * Dibiarkan untuk kompatibilitas, tapi sebenarnya bisa dihapus jika tidak digunakan lagi.
-     */
-    private void loadDetailedReportData(Date startDate, Date endDate, JLabel totalTransLabel, JLabel totalRevenueLabel, JLabel cashTotalLabel, JLabel qrisTotalLabel) {
-        // Ini adalah versi lama yang hanya menyaring berdasarkan tanggal.
-        // Sekarang kita ganti dengan loadFilteredReportData yang lebih canggih.
-        loadFilteredReportData(startDate, endDate, totalTransLabel, totalRevenueLabel, cashTotalLabel, qrisTotalLabel);
     }
 
     private void showTransactionDetail(String transactionCode) {
@@ -478,7 +343,7 @@ public class FinancialReportPanel extends JPanel {
     private void exportToExcel() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Save Excel File");
-        fileChooser.setSelectedFile(new java.io.File("financial_report.xlsx"));
+        fileChooser.setSelectedFile(new java.io.File("financial_report_kasir.xlsx"));
         int userSelection = fileChooser.showSaveDialog(this);
         if (userSelection == JFileChooser.APPROVE_OPTION) {
             java.io.File fileToSave = fileChooser.getSelectedFile();

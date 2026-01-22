@@ -219,7 +219,7 @@ public class MovieSelectionPage extends JPanel {
 
         // Action Listener untuk Report
         reportButton.addActionListener(e -> {
-            app.showPage(new FinancialReportPanel(app)); // Alihkan ke laporan keuangan
+            app.showPage(new FinancialReportKasir(app)); // Alihkan ke laporan keuangan
         });
 
         // Action Listener untuk Refresh

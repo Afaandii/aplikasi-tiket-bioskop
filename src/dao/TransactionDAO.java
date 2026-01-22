@@ -688,4 +688,127 @@ public class TransactionDAO {
         }
         return transactions;
     }
+    
+    /**
+    * Ambil semua pengguna dengan peran 'kasir'
+    */
+    public List<User> getAllCashiers() {
+        List<User> cashiers = new ArrayList<>();
+        String query = "SELECT id, username FROM user WHERE role_id = 2 ORDER BY username";
+        try {
+            ResultSet rs = DatabaseConnection.executeQuery(query);
+            while (rs.next()) {
+                User user = new User();
+                user.setId(rs.getInt("id"));
+                user.setUsername(rs.getString("username"));
+                cashiers.add(user);
+            }
+            rs.close();
+        } catch (SQLException e) {
+            System.err.println("Error getting cashiers: " + e.getMessage());
+        }
+        return cashiers;
+    }
+
+    /**
+    * Ambil transaksi berdasarkan rentang tanggal, nama kasir, dan metode pembayaran.
+    * @param startDate Tanggal awal (bisa null)
+    * @param endDate Tanggal akhir (bisa null)
+    * @param cashierUsername Nama kasir (jika "Semua Kasir", abaikan filter)
+    * @param paymentMethod Metode pembayaran (jika "Semua Metode", abaikan filter)
+    * @return List<Transaction>
+    */
+    public List<Transaction> getTransactionsByDateRangeWithFilters(Date startDate, Date endDate, String cashierUsername, String paymentMethod) {
+        List<Transaction> transactions = new ArrayList<>();
+
+        // Buat query dasar
+        StringBuilder sql = new StringBuilder("""
+            SELECT
+            t.id,
+            t.user_id,
+            t.showtime_id,
+            t.transaction_code,
+            t.total_price,
+            t.status,
+            t.payment_method,
+            t.amount_ticket,
+            t.created_at,
+            u.username AS username,
+            m.title AS movie_title,
+            s.date AS show_date,
+            s.start_time AS show_start_time
+            FROM transaction t
+            INNER JOIN user u ON t.user_id = u.id
+            INNER JOIN showtimes s ON t.showtime_id = s.id
+            INNER JOIN movies m ON s.movie_id = m.id
+            WHERE t.status = 'completed'
+            """);
+
+        // Tambahkan filter tanggal jika startDate dan endDate tidak null
+        if (startDate != null && endDate != null) {
+            sql.append(" AND t.created_at >= ? AND t.created_at < ?");
+        }
+
+        // Tambahkan filter kasir jika bukan "Semua Kasir"
+        if (!"Semua Kasir".equals(cashierUsername)) {
+            sql.append(" AND u.username = ?");
+        }
+
+        // Tambahkan filter metode pembayaran jika bukan "Semua Metode"
+        if (!"Semua Metode".equals(paymentMethod)) {
+            sql.append(" AND t.payment_method = ?");
+        }
+
+        sql.append(" ORDER BY t.created_at DESC");
+
+        try {
+            List<Object> params = new ArrayList<>();
+
+            // Tambahkan parameter untuk filter tanggal jika ada
+            if (startDate != null && endDate != null) {
+                Timestamp startTs = new Timestamp(startDate.getTime());
+                // Tambahkan 1 hari ke endTs agar mencakup seluruh hari
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(endDate);
+                cal.add(Calendar.DAY_OF_MONTH, 1);
+                Timestamp endTs = new Timestamp(cal.getTimeInMillis());
+
+                params.add(startTs);
+                params.add(endTs);
+            }
+
+            // Tambahkan parameter untuk filter kasir
+            if (!"Semua Kasir".equals(cashierUsername)) {
+                params.add(cashierUsername);
+            }
+
+            // Tambahkan parameter untuk filter metode pembayaran
+            if (!"Semua Metode".equals(paymentMethod)) {
+                params.add(paymentMethod);
+            }
+
+            ResultSet rs = DatabaseConnection.executeQuery(sql.toString(), params.toArray());
+            while (rs.next()) {
+                Transaction tx = new Transaction();
+                tx.setId(rs.getInt("id"));
+                tx.setUserId(rs.getInt("user_id"));
+                tx.setShowtimeId(rs.getInt("showtime_id"));
+                tx.setTransactionCode(rs.getString("transaction_code"));
+                tx.setTotalPrice(rs.getInt("total_price"));
+                tx.setAmountTicket(rs.getInt("amount_ticket"));
+                tx.setStatus(rs.getString("status"));
+                tx.setPaymentMethod(rs.getString("payment_method"));
+                tx.setCreatedAt(rs.getTimestamp("created_at"));
+                tx.setUsername(rs.getString("username"));
+                tx.setMovieTitle(rs.getString("movie_title"));
+                tx.setShowDate(rs.getDate("show_date"));
+                tx.setShowTime(rs.getTime("show_start_time"));
+                transactions.add(tx);
+            }
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return transactions;
+    }
 }
