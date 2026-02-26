@@ -17,11 +17,16 @@ import com.toedter.calendar.JDateChooser;
 import javax.swing.border.TitledBorder;
 
 public class FinancialReportKasir extends JPanel {
-    private final Color primaryColor = new Color(41, 128, 185);
+    private final Color primaryColor   = new Color(41, 128, 185);
     private final Color secondaryColor = new Color(52, 152, 219);
     private final Color backgroundColor = new Color(236, 240, 241);
-    private final Color textColor = new Color(44, 62, 80);
-    private final Color whiteColor = Color.WHITE;
+    private final Color textColor      = new Color(44, 62, 80);
+    private final Color whiteColor     = Color.WHITE;
+
+    // Warna kartu ringkasan
+    private final Color cardAllColor  = new Color(41, 128, 185);   // biru – semua transaksi
+    private final Color cardCashColor = new Color(39, 174, 96);    // hijau – cash
+    private final Color cardQrisColor = new Color(142, 68, 173);   // ungu – qris
 
     private JTable reportTable;
     private DefaultTableModel tableModel;
@@ -31,6 +36,14 @@ public class FinancialReportKasir extends JPanel {
     private JComboBox<String> paymentMethodComboBox;
     private CinemaApp app;
     private User loggedInUser;
+
+    // Label ringkasan – diperbarui setiap kali data dimuat
+    private JLabel lblTotalTx;
+    private JLabel lblTotalPendapatan;
+    private JLabel lblCashTx;
+    private JLabel lblCashPendapatan;
+    private JLabel lblQrisTx;
+    private JLabel lblQrisPendapatan;
 
     public FinancialReportKasir(CinemaApp app) {
         setLayout(new BorderLayout());
@@ -45,14 +58,17 @@ public class FinancialReportKasir extends JPanel {
         initializeComponents();
     }
 
+    // =========================================================================
+    // BUILD UI
+    // =========================================================================
+
     private void initializeComponents() {
-        // =====================================================================
-        // TOP PANEL: gabungkan header + filter dalam satu panel di NORTH
-        // =====================================================================
+
+        // --- TOP PANEL: header + filter ---
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(whiteColor);
 
-        // --- Header Bar ---
+        // Header bar
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(whiteColor);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -66,20 +82,12 @@ public class FinancialReportKasir extends JPanel {
         titleLabel.setForeground(textColor);
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
-        JButton backBtn = new JButton("← Kembali");
-        backBtn.setBackground(primaryColor);
-        backBtn.setForeground(whiteColor);
-        backBtn.setFocusPainted(false);
-        backBtn.setBorderPainted(false);
-        backBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        backBtn.setPreferredSize(new Dimension(110, 35));
-        backBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton backBtn = createStyledButton("← Kembali", primaryColor, 110, 35);
         backBtn.addActionListener(e -> app.showPage(new MovieSelectionPage(app)));
         headerPanel.add(backBtn, BorderLayout.EAST);
-
         topPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // --- Filter Bar ---
+        // Filter bar
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         filterPanel.setBackground(new Color(245, 247, 250));
         filterPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -101,14 +109,7 @@ public class FinancialReportKasir extends JPanel {
         endDateChooser.setPreferredSize(new Dimension(130, 28));
         ((JTextField) endDateChooser.getDateEditor().getUiComponent()).setEditable(false);
 
-        JButton generateBtn = new JButton("Filter");
-        generateBtn.setBackground(primaryColor);
-        generateBtn.setForeground(whiteColor);
-        generateBtn.setFocusPainted(false);
-        generateBtn.setBorderPainted(false);
-        generateBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        generateBtn.setPreferredSize(new Dimension(80, 28));
-        generateBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton generateBtn = createStyledButton("Filter", primaryColor, 80, 28);
 
         JLabel paymentMethodLabel = new JLabel("Metode Pembayaran:");
         paymentMethodLabel.setFont(new Font("Arial", Font.PLAIN, 13));
@@ -118,14 +119,7 @@ public class FinancialReportKasir extends JPanel {
         paymentMethodComboBox.addItem("Qris");
         paymentMethodComboBox.setPreferredSize(new Dimension(140, 28));
 
-        JButton exportBtn = new JButton("Export to Excel");
-        exportBtn.setBackground(secondaryColor);
-        exportBtn.setForeground(whiteColor);
-        exportBtn.setFocusPainted(false);
-        exportBtn.setBorderPainted(false);
-        exportBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        exportBtn.setPreferredSize(new Dimension(140, 28));
-        exportBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton exportBtn = createStyledButton("Export to Excel", secondaryColor, 140, 28);
 
         filterPanel.add(startDateLabel);
         filterPanel.add(startDateChooser);
@@ -137,43 +131,198 @@ public class FinancialReportKasir extends JPanel {
         filterPanel.add(exportBtn);
 
         topPanel.add(filterPanel, BorderLayout.SOUTH);
-
-        // Tambahkan topPanel ke NORTH (hanya satu kali!)
         add(topPanel, BorderLayout.NORTH);
 
-        // =====================================================================
-        // CENTER PANEL: Daftar Transaksi
-        // =====================================================================
+        // --- SUMMARY PANEL ---
+        add(createSummaryPanel(), BorderLayout.CENTER == BorderLayout.CENTER
+                ? BorderLayout.CENTER : BorderLayout.CENTER);
+
+        // Bungkus summary + tabel dalam satu CENTER panel
+        JPanel centerWrapper = new JPanel(new BorderLayout(0, 0));
+        centerWrapper.setBackground(backgroundColor);
+        centerWrapper.add(createSummaryPanel(), BorderLayout.NORTH);
+        centerWrapper.add(createTransactionTablePanel(), BorderLayout.CENTER);
+        add(centerWrapper, BorderLayout.CENTER);
+
+        // --- Listeners ---
+        paymentMethodComboBox.addActionListener(e -> applyFilters());
+
+        generateBtn.addActionListener(e -> {
+            java.util.Date startUtil = startDateChooser.getDate();
+            java.util.Date endUtil   = endDateChooser.getDate();
+            if (startUtil == null || endUtil == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Please select both start and end dates.",
+                        "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            Date startDate = new Date(startUtil.getTime());
+            Date endDate   = new Date(endUtil.getTime());
+            if (startDate.after(endDate)) {
+                JOptionPane.showMessageDialog(this,
+                        "Start date cannot be after end date.",
+                        "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            loadFilteredReportData(startDate, endDate);
+        });
+
+        exportBtn.addActionListener(e -> exportToExcel());
+
+        // Load data awal
+        loadAllData();
+    }
+
+    // =========================================================================
+    // SUMMARY PANEL
+    // =========================================================================
+
+    private JPanel createSummaryPanel() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(backgroundColor);
+        wrapper.setBorder(new EmptyBorder(14, 16, 4, 16));
+
+        JLabel sectionTitle = new JLabel("Ringkasan Transaksi");
+        sectionTitle.setFont(new Font("Arial", Font.BOLD, 15));
+        sectionTitle.setForeground(textColor);
+        sectionTitle.setBorder(new EmptyBorder(0, 2, 8, 0));
+        wrapper.add(sectionTitle, BorderLayout.NORTH);
+
+        // 3 kartu: Semua | Cash | QRIS
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 14, 0));
+        cardsPanel.setBackground(backgroundColor);
+
+        // -- Kartu Semua Transaksi --
+        JPanel cardAll = createSummaryCard(cardAllColor, "Semua Transaksi", "💳");
+        lblTotalTx         = getCardValueLabel(cardAll, 0);
+        lblTotalPendapatan = getCardValueLabel(cardAll, 1);
+        cardsPanel.add(cardAll);
+
+        // -- Kartu Cash --
+        JPanel cardCash = createSummaryCard(cardCashColor, "Cash", "💵");
+        lblCashTx         = getCardValueLabel(cardCash, 0);
+        lblCashPendapatan = getCardValueLabel(cardCash, 1);
+        cardsPanel.add(cardCash);
+
+        // -- Kartu QRIS --
+        JPanel cardQris = createSummaryCard(cardQrisColor, "QRIS", "📱");
+        lblQrisTx         = getCardValueLabel(cardQris, 0);
+        lblQrisPendapatan = getCardValueLabel(cardQris, 1);
+        cardsPanel.add(cardQris);
+
+        wrapper.add(cardsPanel, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    /**
+     * Buat satu kartu ringkasan dengan judul dan ikon.
+     * Kartu memiliki 2 baris nilai: jumlah transaksi dan total pendapatan.
+     */
+    private JPanel createSummaryCard(Color color, String title, String icon) {
+        JPanel card = new JPanel(new BorderLayout(0, 6));
+        card.setBackground(color);
+        card.setBorder(new EmptyBorder(14, 18, 14, 18));
+
+        // Header baris: ikon + judul
+        JPanel headerRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        headerRow.setBackground(color);
+
+        JLabel iconLbl = new JLabel(icon);
+        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLbl.setForeground(new Color(255, 255, 255, 210));
+
+        headerRow.add(iconLbl);
+        headerRow.add(titleLbl);
+        card.add(headerRow, BorderLayout.NORTH);
+
+        // Nilai: jumlah transaksi
+        JLabel txLbl = new JLabel("0 Transaksi");
+        txLbl.setFont(new Font("Arial", Font.BOLD, 22));
+        txLbl.setForeground(Color.WHITE);
+        card.add(txLbl, BorderLayout.CENTER);
+
+        // Nilai: total pendapatan
+        JLabel pendapatanLbl = new JLabel("Rp 0");
+        pendapatanLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        pendapatanLbl.setForeground(new Color(255, 255, 255, 190));
+        card.add(pendapatanLbl, BorderLayout.SOUTH);
+
+        // Simpan reference label di client property agar bisa diambil nanti
+        card.putClientProperty("txLabel", txLbl);
+        card.putClientProperty("pendapatanLabel", pendapatanLbl);
+
+        return card;
+    }
+
+    /** Ambil JLabel nilai ke-index dari kartu (0 = tx count, 1 = pendapatan) */
+    private JLabel getCardValueLabel(JPanel card, int index) {
+        if (index == 0) return (JLabel) card.getClientProperty("txLabel");
+        return (JLabel) card.getClientProperty("pendapatanLabel");
+    }
+
+    /** Perbarui nilai semua kartu ringkasan dari list transaksi yang sedang ditampilkan */
+    private void updateSummary(List<Transaction> transactions) {
+        long totalAll = 0, totalCash = 0, totalQris = 0;
+        int  cntAll   = 0, cntCash   = 0, cntQris   = 0;
+
+        for (Transaction tx : transactions) {
+            totalAll += tx.getTotalPrice();
+            cntAll++;
+            String pm = tx.getPaymentMethod();
+            if (pm != null) {
+                if ("cash".equalsIgnoreCase(pm)) {
+                    totalCash += tx.getTotalPrice();
+                    cntCash++;
+                } else if ("qris".equalsIgnoreCase(pm)) {
+                    totalQris += tx.getTotalPrice();
+                    cntQris++;
+                }
+            }
+        }
+
+        lblTotalTx.setText(cntAll + " Transaksi");
+        lblTotalPendapatan.setText(formatCurrency(totalAll));
+
+        lblCashTx.setText(cntCash + " Transaksi");
+        lblCashPendapatan.setText(formatCurrency(totalCash));
+
+        lblQrisTx.setText(cntQris + " Transaksi");
+        lblQrisPendapatan.setText(formatCurrency(totalQris));
+    }
+
+    // =========================================================================
+    // TRANSACTION TABLE PANEL
+    // =========================================================================
+
+    private JPanel createTransactionTablePanel() {
         JPanel transactionPanel = new JPanel(new BorderLayout());
         transactionPanel.setBackground(backgroundColor);
         transactionPanel.setBorder(BorderFactory.createCompoundBorder(
-                new EmptyBorder(12, 16, 12, 16),
+                new EmptyBorder(4, 16, 12, 16),
                 BorderFactory.createTitledBorder(
                         BorderFactory.createLineBorder(new Color(189, 195, 199)),
                         "Daftar Transaksi",
-                        TitledBorder.LEFT,
-                        TitledBorder.TOP,
-                        new Font("Arial", Font.BOLD, 14),
-                        textColor
+                        TitledBorder.LEFT, TitledBorder.TOP,
+                        new Font("Arial", Font.BOLD, 14), textColor
                 )
         ));
 
         String[] columnNames = {
-                "No", "Transaction Code", "Tanggal", "Movie Title",
-                "Total Price", "Payment Method", "Status"
+            "No", "Transaction Code", "Tanggal", "Movie Title",
+            "Total Price", "Payment Method", "Status"
         };
         tableModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int row, int col) { return false; }
         };
 
         reportTable = new JTable(tableModel);
         reportTable.setRowHeight(30);
         reportTable.setFont(new Font("Arial", Font.PLAIN, 13));
         reportTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
-        reportTable.getTableHeader().setBackground(new Color(41, 128, 185));
+        reportTable.getTableHeader().setBackground(primaryColor);
         reportTable.getTableHeader().setForeground(whiteColor);
         reportTable.setSelectionBackground(primaryColor);
         reportTable.setSelectionForeground(whiteColor);
@@ -182,13 +331,11 @@ public class FinancialReportKasir extends JPanel {
         reportTable.setIntercellSpacing(new Dimension(1, 1));
 
         reportTable.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
+            @Override public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
-                    int selectedRow = reportTable.getSelectedRow();
-                    if (selectedRow >= 0) {
-                        String transactionCode = (String) tableModel.getValueAt(selectedRow, 1);
-                        showTransactionDetail(transactionCode);
+                    int row = reportTable.getSelectedRow();
+                    if (row >= 0) {
+                        showTransactionDetail((String) tableModel.getValueAt(row, 1));
                     }
                 }
             }
@@ -197,39 +344,19 @@ public class FinancialReportKasir extends JPanel {
         JScrollPane scrollPane = new JScrollPane(reportTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         transactionPanel.add(scrollPane, BorderLayout.CENTER);
+        return transactionPanel;
+    }
 
-        add(transactionPanel, BorderLayout.CENTER);
+    // =========================================================================
+    // DATA LOADING
+    // =========================================================================
 
-        // =====================================================================
-        // Load data & listeners
-        // =====================================================================
-        loadAllData();
-
-        paymentMethodComboBox.addActionListener(e -> applyFilters());
-
-        generateBtn.addActionListener(e -> {
-            java.util.Date startUtil = startDateChooser.getDate();
-            java.util.Date endUtil = endDateChooser.getDate();
-            if (startUtil == null || endUtil == null) {
-                JOptionPane.showMessageDialog(FinancialReportKasir.this,
-                        "Please select both start and end dates.",
-                        "Input Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            Date startDate = new Date(startUtil.getTime());
-            Date endDate = new Date(endUtil.getTime());
-            if (startDate.after(endDate)) {
-                JOptionPane.showMessageDialog(FinancialReportKasir.this,
-                        "Start date cannot be after end date.",
-                        "Input Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            loadFilteredReportData(startDate, endDate);
-        });
-
-        exportBtn.addActionListener(e -> exportToExcel());
+    private void loadAllData() {
+        tableModel.setRowCount(0);
+        List<Transaction> transactions =
+                transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
+        populateTable(transactions);
+        updateSummary(transactions);
     }
 
     private void applyFilters() {
@@ -239,53 +366,43 @@ public class FinancialReportKasir extends JPanel {
     private void loadFilteredReportData(Date startDate, Date endDate) {
         tableModel.setRowCount(0);
 
-        String selectedPaymentMethod = (String) paymentMethodComboBox.getSelectedItem();
+        String selectedMethod = (String) paymentMethodComboBox.getSelectedItem();
 
         List<Transaction> transactions;
         if (startDate == null || endDate == null) {
             transactions = transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
         } else {
-            transactions = transactionDAO.getTransactionsByDateRangeByCashier(startDate, endDate, loggedInUser.getId());
+            transactions = transactionDAO.getTransactionsByDateRangeByCashier(
+                    startDate, endDate, loggedInUser.getId());
         }
 
-        if (!"Semua Metode".equals(selectedPaymentMethod)) {
-            transactions.removeIf(tx -> !selectedPaymentMethod.equalsIgnoreCase(tx.getPaymentMethod()));
+        if (!"Semua Metode".equals(selectedMethod)) {
+            transactions.removeIf(tx -> !selectedMethod.equalsIgnoreCase(tx.getPaymentMethod()));
         }
 
-        int rowNumber = 1;
+        populateTable(transactions);
+        updateSummary(transactions);
+    }
+
+    private void populateTable(List<Transaction> transactions) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        int rowNum = 1;
         for (Transaction tx : transactions) {
             tableModel.addRow(new Object[]{
-                    rowNumber++,
-                    tx.getTransactionCode(),
-                    sdf.format(tx.getCreatedAt()),
-                    tx.getMovieTitle(),
-                    formatCurrency(tx.getTotalPrice()),
-                    tx.getPaymentMethod(),
-                    tx.getStatus()
+                rowNum++,
+                tx.getTransactionCode(),
+                sdf.format(tx.getCreatedAt()),
+                tx.getMovieTitle(),
+                formatCurrency(tx.getTotalPrice()),
+                tx.getPaymentMethod(),
+                tx.getStatus()
             });
         }
     }
 
-    private void loadAllData() {
-        tableModel.setRowCount(0);
-
-        List<Transaction> transactions = transactionDAO.getAllFinancialReportDataByCashier(loggedInUser.getId());
-
-        int rowNumber = 1;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-        for (Transaction tx : transactions) {
-            tableModel.addRow(new Object[]{
-                    rowNumber++,
-                    tx.getTransactionCode(),
-                    sdf.format(tx.getCreatedAt()),
-                    tx.getMovieTitle(),
-                    formatCurrency(tx.getTotalPrice()),
-                    tx.getPaymentMethod(),
-                    tx.getStatus()
-            });
-        }
-    }
+    // =========================================================================
+    // DETAIL DIALOG
+    // =========================================================================
 
     private void showTransactionDetail(String transactionCode) {
         Transaction tx = transactionDAO.getTransactionByCode(transactionCode);
@@ -297,14 +414,12 @@ public class FinancialReportKasir extends JPanel {
 
         JDialog detailDialog = new JDialog(
                 (JFrame) SwingUtilities.getWindowAncestor(this),
-                "Detail Transaksi",
-                true
+                "Detail Transaksi", true
         );
         detailDialog.setLayout(new BorderLayout());
         detailDialog.setSize(800, 550);
         detailDialog.setLocationRelativeTo(this);
 
-        // Header dialog
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(whiteColor);
         header.setBorder(BorderFactory.createCompoundBorder(
@@ -317,57 +432,36 @@ public class FinancialReportKasir extends JPanel {
         header.add(headerLabel, BorderLayout.WEST);
         detailDialog.add(header, BorderLayout.NORTH);
 
-        // Info panel
         JPanel infoPanel = new JPanel(new GridLayout(3, 4, 10, 10));
         infoPanel.setBackground(backgroundColor);
         infoPanel.setBorder(new EmptyBorder(20, 20, 10, 20));
 
-        Font labelFont = new Font("Arial", Font.BOLD, 13);
-        Font valueFont = new Font("Arial", Font.PLAIN, 13);
+        Font lf = new Font("Arial", Font.BOLD, 13);
+        Font vf = new Font("Arial", Font.PLAIN, 13);
 
-        JLabel kasirLbl = new JLabel("Kasir:"); kasirLbl.setFont(labelFont);
-        JLabel kasirVal = new JLabel(tx.getUsername()); kasirVal.setFont(valueFont);
-        JLabel filmLbl = new JLabel("Film:"); filmLbl.setFont(labelFont);
-        JLabel filmVal = new JLabel(tx.getMovieTitle()); filmVal.setFont(valueFont);
-
-        JLabel tglLbl = new JLabel("Tanggal Tayang:"); tglLbl.setFont(labelFont);
-        JLabel tglVal = new JLabel(tx.getShowDate() != null ? tx.getShowDate().toString() : "-"); tglVal.setFont(valueFont);
-        JLabel jamLbl = new JLabel("Jam Tayang:"); jamLbl.setFont(labelFont);
-        JLabel jamVal = new JLabel(tx.getShowTime() != null ? tx.getShowTime().toString() : "-"); jamVal.setFont(valueFont);
-
-        JLabel totalLbl = new JLabel("Total Harga:"); totalLbl.setFont(labelFont);
-        JLabel totalVal = new JLabel(formatCurrency(tx.getTotalPrice())); totalVal.setFont(valueFont);
-        JLabel metodeLbl = new JLabel("Metode Pembayaran:"); metodeLbl.setFont(labelFont);
-        JLabel metodeVal = new JLabel(tx.getPaymentMethod()); metodeVal.setFont(valueFont);
-
-        infoPanel.add(kasirLbl);  infoPanel.add(kasirVal);
-        infoPanel.add(filmLbl);   infoPanel.add(filmVal);
-        infoPanel.add(tglLbl);    infoPanel.add(tglVal);
-        infoPanel.add(jamLbl);    infoPanel.add(jamVal);
-        infoPanel.add(totalLbl);  infoPanel.add(totalVal);
-        infoPanel.add(metodeLbl); infoPanel.add(metodeVal);
+        addInfoRow(infoPanel, "Kasir:", tx.getUsername(), lf, vf);
+        addInfoRow(infoPanel, "Film:", tx.getMovieTitle(), lf, vf);
+        addInfoRow(infoPanel, "Tanggal Tayang:", tx.getShowDate() != null ? tx.getShowDate().toString() : "-", lf, vf);
+        addInfoRow(infoPanel, "Jam Tayang:", tx.getShowTime() != null ? tx.getShowTime().toString() : "-", lf, vf);
+        addInfoRow(infoPanel, "Total Harga:", formatCurrency(tx.getTotalPrice()), lf, vf);
+        addInfoRow(infoPanel, "Metode Pembayaran:", tx.getPaymentMethod(), lf, vf);
 
         detailDialog.add(infoPanel, BorderLayout.CENTER);
 
-        // Ticket table
         JPanel ticketPanel = new JPanel(new BorderLayout());
         ticketPanel.setBackground(backgroundColor);
         ticketPanel.setBorder(BorderFactory.createCompoundBorder(
                 new EmptyBorder(0, 16, 16, 16),
                 BorderFactory.createTitledBorder(
                         BorderFactory.createLineBorder(new Color(189, 195, 199)),
-                        "Daftar Tiket",
-                        TitledBorder.LEFT,
-                        TitledBorder.TOP,
-                        new Font("Arial", Font.BOLD, 13),
-                        textColor
+                        "Daftar Tiket", TitledBorder.LEFT, TitledBorder.TOP,
+                        new Font("Arial", Font.BOLD, 13), textColor
                 )
         ));
 
         String[] ticketColumns = {"Seat Label", "Harga"};
         DefaultTableModel ticketModel = new DefaultTableModel(ticketColumns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         for (Ticket ticket : tickets) {
             ticketModel.addRow(new Object[]{ticket.getSeatLabel(), formatCurrency(ticket.getPrice())});
@@ -377,16 +471,42 @@ public class FinancialReportKasir extends JPanel {
         ticketTable.setRowHeight(25);
         ticketTable.setFont(new Font("Arial", Font.PLAIN, 13));
         ticketTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
-        JScrollPane ticketScrollPane = new JScrollPane(ticketTable);
-        ticketPanel.add(ticketScrollPane, BorderLayout.CENTER);
+        ticketPanel.add(new JScrollPane(ticketTable), BorderLayout.CENTER);
 
         detailDialog.add(ticketPanel, BorderLayout.SOUTH);
         detailDialog.setVisible(true);
     }
 
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+
+    private void addInfoRow(JPanel panel, String label, String value, Font lf, Font vf) {
+        JLabel lbl = new JLabel(label); lbl.setFont(lf);
+        JLabel val = new JLabel(value); val.setFont(vf);
+        panel.add(lbl);
+        panel.add(val);
+    }
+
+    private JButton createStyledButton(String text, Color bg, int w, int h) {
+        JButton btn = new JButton(text);
+        btn.setBackground(bg);
+        btn.setForeground(whiteColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setFont(new Font("Arial", Font.BOLD, 12));
+        btn.setPreferredSize(new Dimension(w, h));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return btn;
+    }
+
     private String formatCurrency(long amount) {
         return "Rp " + String.format("%,d", amount);
     }
+
+    // =========================================================================
+    // EXPORT
+    // =========================================================================
 
     private void exportToExcel() {
         JFileChooser fileChooser = new JFileChooser();
@@ -395,7 +515,8 @@ public class FinancialReportKasir extends JPanel {
         int userSelection = fileChooser.showSaveDialog(this);
         if (userSelection == JFileChooser.APPROVE_OPTION) {
             java.io.File fileToSave = fileChooser.getSelectedFile();
-            try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook =
+                         new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
                 org.apache.poi.xssf.usermodel.XSSFSheet sheet = workbook.createSheet("Report");
                 org.apache.poi.xssf.usermodel.XSSFRow headerRow = sheet.createRow(0);
                 for (int col = 0; col < tableModel.getColumnCount(); col++) {
@@ -416,13 +537,11 @@ public class FinancialReportKasir extends JPanel {
                 }
                 JOptionPane.showMessageDialog(this,
                         "Export berhasil! File disimpan di: " + fileToSave.getAbsolutePath(),
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this,
                         "Gagal export: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error", JOptionPane.ERROR_MESSAGE);
                 ex.printStackTrace();
             }
         }
